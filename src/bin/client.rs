@@ -44,7 +44,7 @@ async fn fetch_url(url: hyper::Uri) -> Result<()> {
 
     let stream_task = tokio::task::spawn(async move {
         // every N chunks, send our count to the channel
-        let chunk_group_size = 100_000;
+        let chunk_group_size = 5_000;
         let mut bs = 0;
         let mut chunk_num = 0;
         let mut chunk_group_started_at = Instant::now();
