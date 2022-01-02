@@ -7,6 +7,7 @@ const CHUNK: [u8; 4096] = [42; 4096];
 
 /// endless stream of bytes
 async fn speedtest(_: Request<Body>) -> Result<Response<Body>> {
+    println!("starting stream");
     // let body_stream = stream::iter(chunk).cycle().map(|b| Ok::<_, Error>(b)); // endless stream
     let chunks = (0..100).map(|_| &CHUNK);
     let body_stream = stream::iter(chunks)
