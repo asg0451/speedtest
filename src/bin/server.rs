@@ -43,7 +43,7 @@ pub async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         async { Ok::<_, Error>(service_fn(handle)) }
     });
 
-    let addr = ([127, 0, 0, 1], 3000).into();
+    let addr = ([127, 0, 0, 1], 6969).into();
 
     let server = Server::bind(&addr)
         .serve(make_svc)
