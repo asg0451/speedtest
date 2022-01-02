@@ -1,7 +1,7 @@
 use anyhow::Result;
 use hyper::{body::HttpBody as _, Client};
 use std::env;
-use tokio::time::{Duration, Instant};
+use tokio::time::Instant;
 
 // A simple type alias so as to DRY.
 
@@ -40,23 +40,44 @@ async fn fetch_url(url: hyper::Uri) -> Result<()> {
     // stream the response body, counting data and time
     // report on bytes/sec every now and then
 
-    let mut bs = 0;
-    let mut last_reported_at = Instant::now();
-    let ivl = Duration::from_secs(5);
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
-    while let Some(next) = res.data().await {
-        let chunk = next?;
-        let size = chunk.len();
-        bs += size;
+    let stream_task = tokio::task::spawn(async move {
+        // every N chunks, send our count to the channel
+        let chunk_group_size = 100_000;
+        let mut bs = 0;
+        let mut chunk_num = 0;
+        let mut chunk_group_started_at = Instant::now();
+        while let Some(next) = res.data().await {
+            let chunk = next.unwrap();
+            let size = chunk.len();
+            bs += size;
+            chunk_num += 1;
 
-        let now = Instant::now();
-        let dur = now - last_reported_at;
-        if dur > ivl {
+            if chunk_num > chunk_group_size {
+                let now = Instant::now();
+
+                tx.send((bs, now - chunk_group_started_at)).unwrap();
+                bs = 0;
+                chunk_num = 0;
+                chunk_group_started_at = now;
+            }
+        }
+
+        println!("stream ends");
+    });
+
+    let report_task = tokio::spawn(async move {
+        while let Some((bs, dur)) = rx.recv().await {
             let rate = bs as f64 / dur.as_secs_f64();
             println!("rate: {}", format_rate(rate));
-            last_reported_at = now;
-            bs = 0;
         }
+        println!("report ends")
+    });
+
+    tokio::select! {
+        _ = stream_task => (),
+        _ = report_task => (),
     }
 
     println!("end");
