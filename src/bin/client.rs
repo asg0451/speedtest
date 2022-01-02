@@ -86,16 +86,16 @@ async fn fetch_url(url: hyper::Uri) -> Result<()> {
 
 fn format_rate(r: f64) -> String {
     let scales = [
-        (1_000_000_000_000., "Tb/s"),
-        (1_000_000_000., "Gb/s"),
-        (1_000_000., "Mb/s"),
-        (1_000., "Kb/s"),
-        (1., "b/s"),
+        (1_000_000_000_000., "TiB/s"),
+        (1_000_000_000., "GiB/s"),
+        (1_000_000., "MiB/s"),
+        (1_000., "KiB/s"),
+        (1., "B/s"),
     ];
     for (factor, suffix) in scales {
         if r / factor > 1. {
             return format!("{:.1} {}", r / factor, suffix);
         }
     }
-    return format!("{} b", r);
+    return format!("{} B", r);
 }
