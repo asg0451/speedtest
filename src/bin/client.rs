@@ -51,7 +51,6 @@ async fn fetch_url(url: hyper::Uri) -> Result<()> {
     let stream_task = {
         let tx = tx.clone();
         tokio::task::spawn(async move {
-            // every N chunks, send our count to the channel
             while let Some(next) = res.data().await {
                 let chunk = next.unwrap();
                 let size = chunk.len();
