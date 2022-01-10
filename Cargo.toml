@@ -15,5 +15,5 @@ futures = "0.3"
 clap = { version = "3.0.5", features = ['derive'] }
 
 
-[profile.release]
-debug = 1
+# [profile.release]
+# debug = 1
