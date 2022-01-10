@@ -1,15 +1,16 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use hyper::{body::HttpBody as _, Client};
 use std::env;
 use tokio::time::Instant;
 
-// A simple type alias so as to DRY.
-
 #[tokio::main]
 async fn main() -> Result<()> {
+    if let Err(std::env::VarError::NotPresent) = std::env::var("RUST_LOG") {
+        std::env::set_var("RUST_LOG", "client=info")
+    }
+
     pretty_env_logger::init();
 
-    // Some simple CLI args requirements...
     let url = match env::args().nth(1) {
         Some(url) => url,
         None => {
@@ -18,12 +19,10 @@ async fn main() -> Result<()> {
         }
     };
 
-    // HTTPS requires picking a TLS implementation, so give a better
-    // warning if the user tries to request an 'https' URL.
+    // http only
     let url = url.parse::<hyper::Uri>().unwrap();
     if url.scheme_str() != Some("http") {
-        println!("This example only works with 'http' URLs.");
-        return Ok(());
+        return Err(anyhow!("This example only works with 'http' URLs."));
     }
 
     fetch_url(url).await
@@ -34,8 +33,8 @@ async fn fetch_url(url: hyper::Uri) -> Result<()> {
 
     let mut res = client.get(url).await?;
 
-    println!("Response: {}", res.status());
-    println!("Headers: {:#?}\n", res.headers());
+    log::debug!("Response: {}", res.status());
+    log::debug!("Headers: {:#?}\n", res.headers());
 
     // stream the response body, counting data and time
     // report on bytes/sec every now and then
@@ -64,15 +63,15 @@ async fn fetch_url(url: hyper::Uri) -> Result<()> {
             }
         }
 
-        println!("stream ends");
+        log::trace!("stream ends");
     });
 
     let report_task = tokio::spawn(async move {
         while let Some((bs, dur)) = rx.recv().await {
             let rate = bs as f64 / dur.as_secs_f64();
-            println!("rate: {}", format_rate(rate));
+            log::info!("rate: {}", format_rate(rate));
         }
-        println!("report ends")
+        log::trace!("report ends")
     });
 
     tokio::select! {
@@ -80,7 +79,7 @@ async fn fetch_url(url: hyper::Uri) -> Result<()> {
         _ = report_task => (),
     }
 
-    println!("end");
+    log::debug!("finished");
     Ok(())
 }
 
